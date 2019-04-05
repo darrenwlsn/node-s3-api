@@ -141,7 +141,7 @@ const listBucketContents = async (showFolders, startFolder) => {
               return {
                 lastModified: item.LastModified,
                 size: item.Size,
-                name: `https://s3.amazonaws.com/${process.env.AWS_BUCKET}/${item.Key}`
+                name: showFolders ? item.Key.substring(0, item.Key.length - 1) : `https://s3.amazonaws.com/${process.env.AWS_BUCKET}/${item.Key}`
               }
             });
 
@@ -152,4 +152,4 @@ const listBucketContents = async (showFolders, startFolder) => {
 
 };
 
-module.exports = { uploadFile, downloadFile, uploadToS3, retrieveDirectoryListing, retrieveThumbs };
+module.exports = { uploadFile, downloadFile, uploadToS3, retrieveDirectoryListing, retrieveThumbs, listBucketContents };

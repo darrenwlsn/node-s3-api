@@ -45,8 +45,8 @@ describe('S3 file tests', () => {
 
   test('should list folders in s3 location', () => {
     return s3.retrieveDirectoryListing(true, 'Notes').then((data) => {
-      expect(data).toContainObject({ name: 'Notes/TestFolderA/' });
-      expect(data).toContainObject({ name: 'Notes/TestFolderB/' });
+      expect(data).toContainObject({ name: 'Notes/TestFolderA' });
+      expect(data).toContainObject({ name: 'Notes/TestFolderB' });
 
     });
   });
