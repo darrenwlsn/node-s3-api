@@ -1,3 +1,4 @@
+require('dotenv').config();
 const multer = require('multer');
 const multerS3 = require('multer-s3');
 const aws = require('aws-sdk');
@@ -11,6 +12,8 @@ aws.config.update({
 });
 
 const s3 = new aws.S3();
+const mybucket = process.env.AWS_BUCKET;
+
 
 const uploadFile =
   multer({
@@ -51,8 +54,11 @@ const downloadFileFromS3 = async fileName => {
 };
 
 const uploadToS3 = (req, res, next) => {
-  if (req.file && req.file.buffer && req.body.title) {
+  // if (req.file && req.file.buffer && req.body.title) {
+  if (req.file && req.file.buffer) {
     const title = req.body.title;
+    const description = req.body.description;
+    const folder = req.body.selectedFolder;
     var fileExt = '';
     switch (req.file.mimetype) {
       case "image/jpeg": {
@@ -76,26 +82,49 @@ const uploadToS3 = (req, res, next) => {
 
       s3.putObject({
         ACL: 'public-read',
-        Bucket: process.env.AWS_BUCKET,
+        Bucket: `${process.env.AWS_BUCKET}/${folder}`,
         Key: `thumb_${title}.${fileExt}`,
+        Metadata: { title: title, description: description },
         Body: data,
         //ContentMD5: `"${md5(data)}"`
       }, function (err, res) {
-        if (err) { throw err; }
-        console.log(res);
-        if (`"${md5(data)}"` !== res.ETag) throw new Error('error no match on md5: ' + `"${md5(data)}"` + ' and ETag: ' + res.ETag);
+        if (err) {
+          console.log(err);
+          res.send('error !' + err.message);
+        } else {
+          if (`"${md5(data)}"` !== res.ETag) {
+            console.log('error no match on md5 for thumb: ' + `"${md5(data)}"` + ' and ETag: ' + res.ETag);
+            res.send('error no match on md5 of thumb');
+          } else {
+            console.log(`upload completed: thumb_${title}.${fileExt} `);
+            console.log(res);
+          }
+
+        }
+
       });
 
       s3.putObject({
         ACL: 'public-read',
-        Bucket: process.env.AWS_BUCKET,
+        Bucket: `${process.env.AWS_BUCKET}/${folder}`,
         Key: `${title}.${fileExt}`,
         Body: req.file.buffer,
         //ContentMD5: md5(req.file.buffer).toString()
       }, function (err, res) {
-        if (err) { throw err; }
-        console.log(res);
-        if (`"${md5(req.file.buffer)}"` !== res.ETag) throw new Error('error no match on md5: ' + `"${md5(req.file.buffer)}"` + ' and ETag: ' + res.ETag);
+        if (err) {
+          console.log(err);
+          res.send('error !' + err.message);
+        } else {
+          if (`"${md5(req.file.buffer)}"` !== res.ETag) {
+            console.log('error no match on md5 for file: ' + `"${md5(req.file.buffer)}"` + ' and ETag: ' + res.ETag);
+            res.send('error no match on md5 of file');
+          } else {
+            console.log(`upload completed: ${title}.${fileExt} `);
+            console.log(res);
+          }
+
+        }
+
       });
 
     });

@@ -16,6 +16,7 @@ const oktaJwtVerifier = new OktaJwtVerifier({
 });
 
 const publicPath = path.join(__dirname, '../public');
+const mybucket = process.env.AWS_BUCKET;
 const storage = multer.memoryStorage();
 //const upload = multer({ dest: 'images/' });
 const upload = multer({ storage: storage });
@@ -138,7 +139,7 @@ app.get('/contents/:folder', authenticationRequired, (req, res) => {
 });
 
 app.post('/upload', authenticationRequired, upload.single('file'), s3Ops.uploadToS3, (req, res, next) => {
-  res.send("Uploaded!");
+  res.send("Uploaded! " + req.file);
 })
 
 

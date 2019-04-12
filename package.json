@@ -7,8 +7,11 @@
     "start": "node server/server.js",
     "test": "jest"
   },
-  "author": "",
+  "author": "darren wilson",
   "license": "ISC",
+  "engines": {
+    "node": "10.x"
+  },
   "dependencies": {
     "@okta/jwt-verifier": "0.0.14",
     "aws-sdk": "^2.407.0",
