@@ -103,6 +103,7 @@ app.get('/', (req, res) => {
   res.sendFile(__dirname + '/index.html');
 });
 
+// 00uemm474QKiGgXo0356
 app.get('/thumbs/:userBucket?/:folder?', authenticationRequired, (req, res) => {
   var folder = req.params.folder ? req.params.userBucket + '/' + req.params.folder : '';
   const thumbs = s3Ops.retrieveThumbs(folder).then((data) => {
@@ -189,8 +190,8 @@ app.get('/metadata', authenticationRequired, (req, res) => {
       if (data) {
         res.status(200).send(data);
       } else {
-        console.log(`error retrieving meta data for ${req.body.fileLoc}`);
-        res.status(400).send(`error retrieving meta data`);
+        //console.log(`error retrieving meta data for ${req.body.fileLoc}`);
+        res.status(200).send({});
       }
     })
   }

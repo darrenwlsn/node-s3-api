@@ -8,15 +8,20 @@ const createBucketIndex = (idxData) => {
     s3Bucket, userBucket, userFolder, key, title, caption, keywords
   });
 
-  s3Index.save().then(
-    idx => {
-      console.log('idx created for: ' + s3Index.key);
-    },
-    e => {
-      console.log('error creating index for: ' + s3Index.key);
-      console.log('Error Message: ' + e.message);
-    }
-  )
+  try {
+    s3Index.save().then(
+      idx => {
+        console.log('idx created for: ' + s3Index.key);
+      },
+      e => {
+        console.log('error creating index for: ' + s3Index.key);
+        console.log('Error Message: ' + e.message);
+      }
+    )
+  }
+  catch (e) {
+    console.log(e);
+  }
 }
 
 const updateBucketIndex = async (idxData) => {
@@ -27,20 +32,27 @@ const updateBucketIndex = async (idxData) => {
     s3Bucket, userBucket, userFolder, key, title, caption, keywords
   };
 
-  return await S3Index.updateOne(
-    {
-      key: key
-    },
-    s3Index,
-    (err, raw) => {
-      if (err) {
-        console.log('error updating index for: ' + userBucket);
-        throw e;
+  try {
+    return await S3Index.updateOne(
+      {
+        key: key
+      },
+      s3Index,
+      { upsert: true },
+      (err, raw) => {
+        if (err) {
+          console.log('error updating index for: ' + userBucket);
+          throw e;
+        }
+        console.log(raw);
+        return raw;
       }
-      console.log(raw);
-      return raw;
-    }
-  );
+    )
+  } catch (e) {
+    console.log(e);
+  }
+
+
 };
 
 const retrieveBucketIndex = async (fileLoc) => {
