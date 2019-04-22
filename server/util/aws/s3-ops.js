@@ -3,6 +3,7 @@ const multer = require('multer');
 const multerS3 = require('multer-s3');
 const aws = require('aws-sdk');
 const thumb = require('../../util/thumb');
+const { createBucketIndex } = require('../../db/s3index-ops');
 const md5 = require('md5');
 
 aws.config.update({
@@ -56,9 +57,11 @@ const downloadFileFromS3 = async fileName => {
 const uploadToS3 = (req, res, next) => {
   // if (req.file && req.file.buffer && req.body.title) {
   if (req.file && req.file.buffer) {
-    const title = req.body.title;
-    const description = req.body.description;
+    const origName = req.body.name;
     const folder = req.body.selectedFolder;
+    const title = req.body.title;
+    const caption = req.body.caption;
+    const objKey = md5(origName + Date.now());
     var fileExt = '';
     switch (req.file.mimetype) {
       case "image/jpeg": {
@@ -83,21 +86,21 @@ const uploadToS3 = (req, res, next) => {
       s3.putObject({
         ACL: 'public-read',
         Bucket: `${process.env.AWS_BUCKET}/${folder}`,
-        Key: `thumb_${title}.${fileExt}`,
-        Metadata: { title: title, description: description },
+        Key: `thumb_${objKey}.${fileExt}`,
+        Metadata: { origName: origName },
         Body: data,
         //ContentMD5: `"${md5(data)}"`
-      }, function (err, res) {
+      }, function (err, response) {
         if (err) {
           console.log(err);
           res.send('error !' + err.message);
         } else {
-          if (`"${md5(data)}"` !== res.ETag) {
-            console.log('error no match on md5 for thumb: ' + `"${md5(data)}"` + ' and ETag: ' + res.ETag);
+          if (`"${md5(data)}"` !== response.ETag) {
+            console.log('error no match on md5 for thumb: ' + `"${md5(data)}"` + ' and ETag: ' + response.ETag);
             res.send('error no match on md5 of thumb');
           } else {
-            console.log(`upload completed: thumb_${title}.${fileExt} `);
-            console.log(res);
+            console.log(`upload completed: thumb_${objKey}.${fileExt}. Original name: ${origName}`);
+            console.log(response);
           }
 
         }
@@ -107,20 +110,34 @@ const uploadToS3 = (req, res, next) => {
       s3.putObject({
         ACL: 'public-read',
         Bucket: `${process.env.AWS_BUCKET}/${folder}`,
-        Key: `${title}.${fileExt}`,
+        Key: `${objKey}.${fileExt}`,
+        Metadata: { origName: origName },
         Body: req.file.buffer,
         //ContentMD5: md5(req.file.buffer).toString()
-      }, function (err, res) {
+      }, function (err, response) {
         if (err) {
           console.log(err);
           res.send('error !' + err.message);
         } else {
-          if (`"${md5(req.file.buffer)}"` !== res.ETag) {
-            console.log('error no match on md5 for file: ' + `"${md5(req.file.buffer)}"` + ' and ETag: ' + res.ETag);
+          if (`"${md5(req.file.buffer)}"` !== response.ETag) {
+            console.log('error no match on md5 for file: ' + `"${md5(req.file.buffer)}"` + ' and ETag: ' + response.ETag);
             res.send('error no match on md5 of file');
           } else {
-            console.log(`upload completed: ${title}.${fileExt} `);
-            console.log(res);
+            console.log(`upload completed: ${objKey}.${fileExt}. Original name: ${origName}`);
+            console.log(response);
+            //res.status(200).send('file uploaded');
+            const idxData = {
+              s3Bucket: process.env.AWS_BUCKET,
+              userBucket: folder.substring(0, folder.indexOf('/')),
+              userFolder: folder.substring(folder.indexOf('/') + 1),
+              key: `https://s3.amazonaws.com/${process.env.AWS_BUCKET}/${folder}/${objKey}.${fileExt}`,
+              title: title,
+              caption: caption,
+              keywords: []
+            };
+            const indexResult = createBucketIndex(idxData);
+            console.log('finished with index');
+            //res.status(200).json({ url: `https://s3.amazonaws.com/${process.env.AWS_BUCKET}/${folder}/${objKey}.${fileExt}` });
           }
 
         }
@@ -152,7 +169,7 @@ const listBucketContents = async (showFolders, startFolder) => {
   let params = {
     Bucket: process.env.AWS_BUCKET,
     Prefix: startFolder ? startFolder : '',
-    MaxKeys: 20
+    MaxKeys: 30
   };
 
   return new Promise((resolve, reject) => {
